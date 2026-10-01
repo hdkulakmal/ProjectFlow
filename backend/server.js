@@ -1,3 +1,4 @@
+
 const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
@@ -10,6 +11,9 @@ const errorHandler = require("./config/errorHandler");
 const setupSocket = require("./socket/socket");
 const messageRoutes = require("./routes/messageRoutes");
 const uploadRoutes = require("./routes/uploadRoutes");
+
+const projectRoutes = require("./routes/projectRoutes");
+const groupRoutes = require("./routes/groupRoutes");
 
 dotenv.config();
 
@@ -42,6 +46,9 @@ app.get("/api/health", (req, res) => {
 
 app.use("/api/messages", messageRoutes);
 app.use("/api/upload", uploadRoutes);
+
+app.use("/api/projects", projectRoutes);
+app.use("/api/groups", groupRoutes);
 
 setupSocket(io);
 
