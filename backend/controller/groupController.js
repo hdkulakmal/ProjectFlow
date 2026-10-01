@@ -31,6 +31,25 @@ const createGroup = async (req, res) => {
   }
 };
 
+// Get all groups
+const getGroups = async (req, res) => {
+  try {
+    const groups = await Group.find()
+      .populate("members")
+      .populate("project")
+      .populate("supervisor");
+
+    res.status(200).json({
+      groups,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Failed to get groups",
+      error: error.message,
+    });
+  }
+};
+
 // Get group details
 const getGroup = async (req, res) => {
   try {
@@ -88,6 +107,7 @@ const updateGroup = async (req, res) => {
 
 module.exports = {
   createGroup,
+  getGroups,
   getGroup,
   updateGroup,
 };

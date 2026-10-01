@@ -31,6 +31,24 @@ const createProject = async (req, res) => {
   }
 };
 
+// Get all projects
+const getProjects = async (req, res) => {
+  try {
+    const projects = await Project.find()
+      .populate("group")
+      .populate("supervisor");
+
+    res.status(200).json({
+      projects,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Failed to get projects",
+      error: error.message,
+    });
+  }
+};
+
 // Get project details
 const getProject = async (req, res) => {
   try {
@@ -87,6 +105,7 @@ const updateProject = async (req, res) => {
 
 module.exports = {
   createProject,
+  getProjects,
   getProject,
   updateProject,
 };
