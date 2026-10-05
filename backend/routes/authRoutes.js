@@ -1,4 +1,4 @@
-git add backend/routes/authRoutes.jsconst express = require("express");
+const express = require("express");
 
 const router = express.Router();
 
