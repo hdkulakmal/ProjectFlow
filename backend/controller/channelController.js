@@ -86,7 +86,7 @@ const listChannels = async (req, res) => {
       channels.push({
         id: msg.channel,
         type: CHANNEL_TYPES.PRIVATE,
-        title: peer.full_name || peer.username,
+        title: peer.fullName || peer.email,
         enabled: true,
         peer,
         lastMessage: { text: msg.message, createdAt: msg.createdAt },
@@ -124,7 +124,7 @@ const openPrivate = async (req, res) => {
       data: {
         id,
         type: CHANNEL_TYPES.PRIVATE,
-        title: peer.full_name || peer.username,
+        title: peer.fullName || peer.email,
         enabled: true,
         peer,
       },
@@ -144,8 +144,8 @@ const listParticipants = async (req, res) => {
     res.status(200).json({
       data: people.map((u) => ({
         _id: u._id,
-        full_name: u.full_name,
-        username: u.username,
+        fullName: u.fullName,
+        email: u.email,
         role: u.role,
       })),
     });

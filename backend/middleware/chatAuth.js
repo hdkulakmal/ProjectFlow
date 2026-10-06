@@ -18,7 +18,7 @@ const authenticateToken = async (token) => {
   // Support the common payload shapes: { id } / { userId } / { _id }
   const userId = decoded.id || decoded.userId || decoded._id;
   const user = userId
-    ? await User.findById(userId).select("-password -password_hash").lean()
+    ? await User.findById(userId).select("-passwordHash").lean()
     : null;
 
   if (!user) throw new ChatError(401, "User no longer exists");

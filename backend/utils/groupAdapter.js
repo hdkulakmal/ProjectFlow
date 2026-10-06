@@ -2,7 +2,7 @@ const User = require("../model/User");
 const Group = require("../model/Group");
 const { canChat, normalizeRole, ROLES } = require("./chatAccess");
 
-const USER_FIELDS = "username full_name email role status";
+const USER_FIELDS = "fullName email role";
 
 const escapeRegex = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
@@ -24,11 +24,11 @@ const searchChatUsers = async (exceptUserId, search = "") => {
   const text = String(search).trim();
   if (text) {
     const rx = new RegExp(escapeRegex(text), "i");
-    cond.$or = [{ full_name: rx }, { username: rx }, { email: rx }];
+    cond.$or = [{ fullName: rx }, { email: rx }];
   }
   const users = await User.find(cond)
     .select(USER_FIELDS)
-    .sort({ full_name: 1 })
+    .sort({ fullName: 1 })
     .limit(100)
     .lean();
   return users.filter(canChat).slice(0, 20);
@@ -46,7 +46,9 @@ const groupLabel = (group) =>
   group.group_code ||
   group.name ||
   group.title ||
-  `Group ${String(group._id).slice(-4)}`;
+  (group.groupNumber
+    ? `Group ${group.groupNumber}`
+    : `Group ${String(group._id).slice(-4)}`);
 
 module.exports = {
   USER_FIELDS,
