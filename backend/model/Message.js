@@ -8,16 +8,35 @@ const messageSchema = new mongoose.Schema(
       required: true,
     },
 
+    channel: {
+      type: String,
+      required: true,
+      index: true,
+    },
+
+    channelType: {
+      type: String,
+      enum: ["group", "supervisor", "triad", "private"],
+      required: true,
+    },
+
     group: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Group",
-      required: true,
+      default: null,
+    },
+
+    receiver: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
     },
 
     message: {
       type: String,
-      required: true,
       trim: true,
+      maxlength: 2000,
+      required: true,
     },
 
     mentions: [
@@ -32,6 +51,8 @@ const messageSchema = new mongoose.Schema(
   },
 );
 
-const Message = mongoose.model("Message", messageSchema);
+messageSchema.index({ channel: 1, createdAt: -1 });
+messageSchema.index({ channelType: 1, sender: 1 });
+messageSchema.index({ channelType: 1, receiver: 1 });
 
-module.exports = Message;
+module.exports = mongoose.model("Message", messageSchema);
