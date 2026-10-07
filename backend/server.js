@@ -8,8 +8,13 @@ const connectDB = require("./config/db");
 const errorHandler = require("./config/errorHandler");
 
 const setupSocket = require("./socket/socket");
+
 const messageRoutes = require("./routes/messageRoutes");
 const uploadRoutes = require("./routes/uploadRoutes");
+const supervisorRoutes = require("./routes/supervisorRoutes");
+const supervisorRequestRoutes = require("./routes/supervisorRequestRoutes");
+const groupRoutes = require("./routes/groupRoutes");
+const projectRoutes = require("./routes/projectRoutes");
 
 dotenv.config();
 
@@ -42,6 +47,10 @@ app.get("/api/health", (req, res) => {
 
 app.use("/api/messages", messageRoutes);
 app.use("/api/upload", uploadRoutes);
+app.use("/api/supervisors", supervisorRoutes);
+app.use("/api/supervisor-requests", supervisorRequestRoutes);
+app.use("/api/groups", groupRoutes);
+app.use("/api/projects", projectRoutes);
 
 setupSocket(io);
 
