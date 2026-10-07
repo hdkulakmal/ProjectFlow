@@ -41,11 +41,18 @@ const loadChannelContext = async (user, rawChannelId) => {
   return { channel, ...ctx };
 };
 
-const sendMessage = async ({ user, channelId, text, mentionIds = [] }) => {
+const sendMessage = async ({
+  user,
+  channelId,
+  text,
+  mentionIds = [],
+  attachments = [],
+}) => {
   const body = String(text ?? "").trim();
+  const files = Array.isArray(attachments) ? attachments : [];
 
-  if (!body) {
-    throw new ChatError(400, "Message is required");
+  if (!body && files.length === 0) {
+    throw new ChatError(400, "Message or file required");
   }
   if (body.length > MAX_MESSAGE_LENGTH) {
     throw new ChatError(
@@ -74,8 +81,9 @@ const sendMessage = async ({ user, channelId, text, mentionIds = [] }) => {
     channelType: channel.type,
     group: group ? group._id : null,
     receiver: peer ? peer._id : null,
-    message: body,
+    message: body || (files.length ? "📎 File" : ""),
     mentions,
+    attachments: files,
   });
 
   return populateMessage(created);
@@ -115,6 +123,49 @@ const getParticipants = async ({ user, channelId }) => {
   return people.filter((u) => getChannelAccess(u, channel, { group }).allowed);
 };
 
+const editMessage = async ({ user, messageId, text }) => {
+  const body = String(text ?? "").trim();
+  if (!body) throw new ChatError(400, "Message cannot be empty");
+  if (body.length > MAX_MESSAGE_LENGTH) {
+    throw new ChatError(
+      400,
+      `Message is longer than ${MAX_MESSAGE_LENGTH} characters`,
+    );
+  }
+
+  const msg = await Message.findById(messageId);
+  if (!msg || msg.deleted) throw new ChatError(404, "Message not found");
+  if (String(msg.sender) !== idOf(user)) {
+    throw new ChatError(403, "You can only edit your own messages");
+  }
+
+  await loadChannelContext(user, msg.channel);
+
+  msg.message = body;
+  msg.edited = true;
+  msg.editedAt = new Date();
+  await msg.save();
+
+  return populateMessage(msg);
+};
+
+const deleteMessage = async ({ user, messageId }) => {
+  const msg = await Message.findById(messageId);
+  if (!msg || msg.deleted) throw new ChatError(404, "Message not found");
+  if (String(msg.sender) !== idOf(user)) {
+    throw new ChatError(403, "You can only delete your own messages");
+  }
+
+  await loadChannelContext(user, msg.channel);
+
+  msg.deleted = true;
+  msg.message = "";
+  msg.attachments = [];
+  await msg.save();
+
+  return populateMessage(msg);
+};
+
 const broadcastMessage = (io, message) => {
   if (!io) return;
 
@@ -135,10 +186,41 @@ const broadcastMessage = (io, message) => {
   });
 };
 
+const broadcastMessageUpdate = (io, message) => {
+  if (!io || !message) return;
+  if (message.channelType === CHANNEL_TYPES.PRIVATE) {
+    io.to(`user_${idOf(message.sender)}`)
+      .to(`user_${idOf(message.receiver)}`)
+      .emit("message_updated", message);
+  } else {
+    io.to(message.channel).emit("message_updated", message);
+  }
+};
+
+const broadcastMessageDelete = (io, message) => {
+  if (!io || !message) return;
+  const payload = {
+    _id: message._id,
+    channel: message.channel,
+    deleted: true,
+  };
+  if (message.channelType === CHANNEL_TYPES.PRIVATE) {
+    io.to(`user_${idOf(message.sender)}`)
+      .to(`user_${idOf(message.receiver)}`)
+      .emit("message_deleted", payload);
+  } else {
+    io.to(message.channel).emit("message_deleted", payload);
+  }
+};
+
 module.exports = {
   loadChannelContext,
   sendMessage,
   getMessages,
   getParticipants,
   broadcastMessage,
+  editMessage,
+  deleteMessage,
+  broadcastMessageUpdate,
+  broadcastMessageDelete,
 };

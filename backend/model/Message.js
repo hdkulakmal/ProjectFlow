@@ -1,5 +1,16 @@
 const mongoose = require("mongoose");
 
+const attachmentSchema = new mongoose.Schema(
+  {
+    filename: String,
+    originalName: String,
+    mimetype: String,
+    size: Number,
+    url: String,
+  },
+  { _id: false },
+);
+
 const messageSchema = new mongoose.Schema(
   {
     sender: {
@@ -36,7 +47,7 @@ const messageSchema = new mongoose.Schema(
       type: String,
       trim: true,
       maxlength: 2000,
-      required: true,
+      default: "",
     },
 
     mentions: [
@@ -45,6 +56,17 @@ const messageSchema = new mongoose.Schema(
         ref: "User",
       },
     ],
+
+    // edit / delete
+    edited: { type: Boolean, default: false },
+    editedAt: { type: Date, default: null },
+    deleted: { type: Boolean, default: false },
+
+    // file attachments
+    attachments: {
+      type: [attachmentSchema],
+      default: [],
+    },
   },
   {
     timestamps: true,

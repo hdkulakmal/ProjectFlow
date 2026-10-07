@@ -3,6 +3,8 @@ const express = require("express");
 const {
   createMessage,
   getChannelMessages,
+  updateMessage,
+  removeMessage,
 } = require("../controller/messageController");
 const { protect, allowChatRoles } = require("../middleware/chatAuth");
 
@@ -17,5 +19,9 @@ router.post("/", createMessage);
 
 // Get messages for a channel
 router.get("/:channelId", getChannelMessages);
+
+// Edit / delete own message
+router.patch("/:id", updateMessage);
+router.delete("/:id", removeMessage);
 
 module.exports = router;

@@ -9,6 +9,10 @@ const {
   loadChannelContext,
   sendMessage,
   broadcastMessage,
+  editMessage,
+  deleteMessage,
+  broadcastMessageUpdate,
+  broadcastMessageDelete,
 } = require("../utils/chatService");
 
 const makeReply = (ack) => (payload) => {
@@ -58,16 +62,17 @@ const setupSocket = (io) => {
       socket.leave(String(channelId));
     });
 
-    // payload: { channel, message, mentions? }
+    // payload: { channel, message?, mentions?, attachments? }
     socket.on("send_message", async (data, ack) => {
       const reply = makeReply(ack);
       try {
-        const { channel, message, mentions } = data || {};
+        const { channel, message, mentions, attachments } = data || {};
         const saved = await sendMessage({
           user: socket.user,
           channelId: channel,
           text: message,
           mentionIds: mentions,
+          attachments,
         });
         broadcastMessage(io, saved);
         reply({ ok: true, data: saved });
@@ -78,6 +83,45 @@ const setupSocket = (io) => {
           console.error("Message error:", error);
         reply({ ok: false, message: text });
         socket.emit("message_error", { message: text });
+      }
+    });
+
+    // payload: { messageId, message }
+    socket.on("edit_message", async (data, ack) => {
+      const reply = makeReply(ack);
+      try {
+        const { messageId, message } = data || {};
+        const updated = await editMessage({
+          user: socket.user,
+          messageId,
+          text: message,
+        });
+        broadcastMessageUpdate(io, updated);
+        reply({ ok: true, data: updated });
+      } catch (error) {
+        const text =
+          error instanceof ChatError ? error.message : "Failed to edit message";
+        reply({ ok: false, message: text });
+      }
+    });
+
+    // payload: { messageId }
+    socket.on("delete_message", async (data, ack) => {
+      const reply = makeReply(ack);
+      try {
+        const { messageId } = data || {};
+        const removed = await deleteMessage({
+          user: socket.user,
+          messageId,
+        });
+        broadcastMessageDelete(io, removed);
+        reply({ ok: true, data: { _id: removed._id, deleted: true } });
+      } catch (error) {
+        const text =
+          error instanceof ChatError
+            ? error.message
+            : "Failed to delete message";
+        reply({ ok: false, message: text });
       }
     });
 

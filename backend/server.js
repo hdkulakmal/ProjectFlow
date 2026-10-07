@@ -3,6 +3,7 @@ const cors = require("cors");
 const dotenv = require("dotenv");
 const http = require("http");
 const { Server } = require("socket.io");
+const path = require("path");
 
 dotenv.config();
 
@@ -32,6 +33,8 @@ const PORT = process.env.PORT || 5000;
 
 app.use(cors({ origin: CLIENT_URL }));
 app.use(express.json());
+// uploaded chat files
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 connectDB();
 
