@@ -15,7 +15,7 @@ const messageRoutes = require("./routes/messageRoutes");
 const uploadRoutes = require("./routes/uploadRoutes");
 const projectRoutes = require("./routes/projectRoutes");
 const groupRoutes = require("./routes/groupRoutes");
-
+const ideaRoutes = require("./routes/ideaRoutes");
 dotenv.config();
 
 const app = express();
@@ -49,6 +49,7 @@ app.use("/api/messages", messageRoutes);
 app.use("/api/upload", uploadRoutes);
 app.use("/api/projects", projectRoutes);
 app.use("/api/groups", groupRoutes);
+app.use("/api/ideas", ideaRoutes);
 
 setupSocket(io);
 
