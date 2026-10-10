@@ -1,3 +1,4 @@
+
 const mongoose = require("mongoose");
 
 const groupSchema = new mongoose.Schema(
@@ -5,7 +6,6 @@ const groupSchema = new mongoose.Schema(
     groupNumber: {
       type: Number,
       required: true,
-      unique: true,
     },
 
     batch: {
@@ -36,6 +36,11 @@ const groupSchema = new mongoose.Schema(
   {
     timestamps: true,
   }
+);
+
+groupSchema.index(
+  { groupNumber: 1, batch: 1 },
+  { unique: true }
 );
 
 module.exports = mongoose.model("Group", groupSchema);
