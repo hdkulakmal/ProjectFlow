@@ -1,3 +1,4 @@
+
 const Group = require("../model/Group");
 
 // Create a new group
@@ -31,7 +32,27 @@ const createGroup = async (req, res) => {
   }
 };
 
-// Get group details
+// Get all groups
+const getGroups = async (req, res) => {
+  try {
+    const groups = await Group.find()
+      .populate("members")
+      .populate("project")
+      .populate("supervisor");
+
+    res.status(200).json({
+      count: groups.length,
+      groups,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Failed to get groups",
+      error: error.message,
+    });
+  }
+};
+
+// Get one group by ID
 const getGroup = async (req, res) => {
   try {
     const group = await Group.findById(req.params.id)
@@ -45,9 +66,7 @@ const getGroup = async (req, res) => {
       });
     }
 
-    res.status(200).json({
-      group,
-    });
+    res.status(200).json({ group });
   } catch (error) {
     res.status(500).json({
       message: "Failed to get group",
@@ -88,6 +107,7 @@ const updateGroup = async (req, res) => {
 
 module.exports = {
   createGroup,
+  getGroups,
   getGroup,
   updateGroup,
 };
