@@ -8,10 +8,11 @@ const { Server } = require("socket.io");
 const connectDB = require("./config/db");
 const errorHandler = require("./config/errorHandler");
 
+require("./model/User");
+
 const setupSocket = require("./socket/socket");
 const messageRoutes = require("./routes/messageRoutes");
 const uploadRoutes = require("./routes/uploadRoutes");
-
 const projectRoutes = require("./routes/projectRoutes");
 const groupRoutes = require("./routes/groupRoutes");
 
@@ -46,7 +47,6 @@ app.get("/api/health", (req, res) => {
 
 app.use("/api/messages", messageRoutes);
 app.use("/api/upload", uploadRoutes);
-
 app.use("/api/projects", projectRoutes);
 app.use("/api/groups", groupRoutes);
 
