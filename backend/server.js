@@ -14,6 +14,8 @@ const uploadRoutes = require("./routes/uploadRoutes");
 const projectRoutes = require("./routes/projectRoutes");
 const groupRoutes = require("./routes/groupRoutes");
 
+require("./model/User");
+
 dotenv.config();
 
 const app = express();
