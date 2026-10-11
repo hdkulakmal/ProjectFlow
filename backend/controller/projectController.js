@@ -1,3 +1,4 @@
+
 const Project = require("../model/Project");
 
 // Create a new project
@@ -31,7 +32,26 @@ const createProject = async (req, res) => {
   }
 };
 
-// Get project details
+// Get all projects
+const getProjects = async (req, res) => {
+  try {
+    const projects = await Project.find()
+      .populate("group")
+      .populate("supervisor");
+
+    res.status(200).json({
+      count: projects.length,
+      projects,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Failed to get projects",
+      error: error.message,
+    });
+  }
+};
+
+// Get one project by ID
 const getProject = async (req, res) => {
   try {
     const project = await Project.findById(req.params.id)
@@ -44,9 +64,7 @@ const getProject = async (req, res) => {
       });
     }
 
-    res.status(200).json({
-      project,
-    });
+    res.status(200).json(project);
   } catch (error) {
     res.status(500).json({
       message: "Failed to get project",
@@ -87,6 +105,7 @@ const updateProject = async (req, res) => {
 
 module.exports = {
   createProject,
+  getProjects,
   getProject,
   updateProject,
 };
