@@ -15,6 +15,7 @@ const supervisorRoutes = require("./routes/supervisorRoutes");
 const supervisorRequestRoutes = require("./routes/supervisorRequestRoutes");
 const groupRoutes = require("./routes/groupRoutes");
 const projectRoutes = require("./routes/projectRoutes");
+const ganttRoutes = require('./routes/ganttRoutes');
 
 dotenv.config();
 
@@ -51,6 +52,7 @@ app.use("/api/supervisors", supervisorRoutes);
 app.use("/api/supervisor-requests", supervisorRequestRoutes);
 app.use("/api/groups", groupRoutes);
 app.use("/api/projects", projectRoutes);
+app.use('/api/gantt', ganttRoutes);
 
 setupSocket(io);
 
