@@ -57,12 +57,16 @@ const messageSchema = new mongoose.Schema(
       },
     ],
 
-    // edit / delete
+    replyTo: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Message",
+      default: null,
+    },
+
     edited: { type: Boolean, default: false },
     editedAt: { type: Date, default: null },
     deleted: { type: Boolean, default: false },
 
-    // file attachments
     attachments: {
       type: [attachmentSchema],
       default: [],
@@ -76,5 +80,6 @@ const messageSchema = new mongoose.Schema(
 messageSchema.index({ channel: 1, createdAt: -1 });
 messageSchema.index({ channelType: 1, sender: 1 });
 messageSchema.index({ channelType: 1, receiver: 1 });
+messageSchema.index({ message: "text" });
 
 module.exports = mongoose.model("Message", messageSchema);

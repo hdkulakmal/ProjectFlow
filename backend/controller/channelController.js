@@ -13,11 +13,11 @@ const {
 const {
   USER_FIELDS,
   findUserById,
-  searchChatUsers,
   findGroupForStudent,
   findGroupsForSupervisor,
   findGroupsWithSupervisor,
   groupLabel,
+  searchChatUsers,
 } = require("../utils/groupAdapter");
 const { getParticipants } = require("../utils/chatService");
 const { handleError } = require("./messageController");
@@ -25,7 +25,7 @@ const { handleError } = require("./messageController");
 const TITLES = {
   [CHANNEL_TYPES.GROUP]: "Students",
   [CHANNEL_TYPES.SUPERVISOR]: "Supervisor",
-  [CHANNEL_TYPES.TRIAD]: "Supervisor & Coordinator",
+  [CHANNEL_TYPES.TRIAD]: "Coordinator",
 };
 const LOCKED_REASON = "Opens after the supervisor accepts the group's request";
 
@@ -42,7 +42,6 @@ const describeGroupChannel = (type, group) => {
   };
 };
 
-// GET /api/channels  -> everything this user can see in the sidebar
 const listChannels = async (req, res) => {
   try {
     const me = idOf(req.user);
@@ -67,7 +66,6 @@ const listChannels = async (req, res) => {
       }
     }
 
-    // Private chats this user already has, most recent first
     const recent = await Message.find({
       channelType: CHANNEL_TYPES.PRIVATE,
       $or: [{ sender: req.user._id }, { receiver: req.user._id }],
@@ -86,7 +84,7 @@ const listChannels = async (req, res) => {
       channels.push({
         id: msg.channel,
         type: CHANNEL_TYPES.PRIVATE,
-        title: peer.fullName || peer.email,
+        title: peer.full_name || peer.username,
         enabled: true,
         peer,
         lastMessage: { text: msg.message, createdAt: msg.createdAt },
@@ -99,7 +97,6 @@ const listChannels = async (req, res) => {
   }
 };
 
-// GET /api/channels/users?search=ann  -> people I can start a private chat with
 const searchUsers = async (req, res) => {
   try {
     const data = await searchChatUsers(req.user._id, req.query.search);
@@ -109,13 +106,12 @@ const searchUsers = async (req, res) => {
   }
 };
 
-// POST /api/channels/private   body: { userId }  -> the private channel with that user
 const openPrivate = async (req, res) => {
   try {
     const { userId } = req.body;
     if (!userId) return res.status(400).json({ message: "userId is required" });
 
-    const id = privateChannelId(idOf(req.user), userId); // validates + sorts ids
+    const id = privateChannelId(idOf(req.user), userId);
     const peer = await findUserById(userId);
     if (!canChat(peer))
       throw new ChatError(404, "That user is not available for chat");
@@ -124,7 +120,7 @@ const openPrivate = async (req, res) => {
       data: {
         id,
         type: CHANNEL_TYPES.PRIVATE,
-        title: peer.fullName || peer.email,
+        title: peer.full_name || peer.username,
         enabled: true,
         peer,
       },
@@ -134,7 +130,6 @@ const openPrivate = async (req, res) => {
   }
 };
 
-// GET /api/channels/:channelId/participants  -> for the @mention picker
 const listParticipants = async (req, res) => {
   try {
     const people = await getParticipants({
@@ -144,8 +139,8 @@ const listParticipants = async (req, res) => {
     res.status(200).json({
       data: people.map((u) => ({
         _id: u._id,
-        fullName: u.fullName,
-        email: u.email,
+        full_name: u.full_name,
+        username: u.username,
         role: u.role,
       })),
     });
@@ -154,4 +149,9 @@ const listParticipants = async (req, res) => {
   }
 };
 
-module.exports = { listChannels, searchUsers, openPrivate, listParticipants };
+module.exports = {
+  listChannels,
+  searchUsers,
+  openPrivate,
+  listParticipants,
+};

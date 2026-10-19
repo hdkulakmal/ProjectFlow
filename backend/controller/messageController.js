@@ -7,6 +7,7 @@ const {
   deleteMessage,
   broadcastMessageUpdate,
   broadcastMessageDelete,
+  searchMessages,
 } = require("../utils/chatService");
 
 const handleError = (res, error, fallback) => {
@@ -17,10 +18,9 @@ const handleError = (res, error, fallback) => {
   res.status(500).json({ message: fallback });
 };
 
-// POST /api/messages   body: { channel, message?, mentions?, attachments? }
 const createMessage = async (req, res) => {
   try {
-    const { channel, message, mentions, attachments } = req.body;
+    const { channel, message, mentions, attachments, replyTo } = req.body;
     if (!channel) {
       return res.status(400).json({ message: "channel is required" });
     }
@@ -36,6 +36,7 @@ const createMessage = async (req, res) => {
       text: message,
       mentionIds: mentions,
       attachments,
+      replyTo,
     });
 
     broadcastMessage(req.app.get("io"), saved);
@@ -47,7 +48,6 @@ const createMessage = async (req, res) => {
   }
 };
 
-// GET /api/messages/:channelId?before=&limit=
 const getChannelMessages = async (req, res) => {
   try {
     const data = await getMessages({
@@ -62,7 +62,24 @@ const getChannelMessages = async (req, res) => {
   }
 };
 
-// PATCH /api/messages/:id   body: { message }
+const searchChannelMessages = async (req, res) => {
+  try {
+    const data = await searchMessages({
+      user: req.user,
+      q: req.query.q,
+      channelId: req.query.channel || null,
+      limit: req.query.limit,
+      filesOnly:
+        req.query.filesOnly === "1" ||
+        req.query.filesOnly === "true" ||
+        req.query.filesOnly === true,
+    });
+    res.status(200).json({ data });
+  } catch (error) {
+    handleError(res, error, "Search failed");
+  }
+};
+
 const updateMessage = async (req, res) => {
   try {
     const updated = await editMessage({
@@ -77,7 +94,6 @@ const updateMessage = async (req, res) => {
   }
 };
 
-// DELETE /api/messages/:id
 const removeMessage = async (req, res) => {
   try {
     const removed = await deleteMessage({
@@ -97,6 +113,7 @@ const removeMessage = async (req, res) => {
 module.exports = {
   createMessage,
   getChannelMessages,
+  searchChannelMessages,
   updateMessage,
   removeMessage,
   handleError,

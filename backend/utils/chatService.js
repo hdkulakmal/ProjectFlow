@@ -16,12 +16,18 @@ const {
 
 const MAX_MESSAGE_LENGTH = 2000;
 
-const populateMessage = (doc) =>
-  doc.populate([
-    { path: "sender", select: USER_FIELDS },
-    { path: "receiver", select: USER_FIELDS },
-    { path: "mentions", select: USER_FIELDS },
-  ]);
+const POPULATE = [
+  { path: "sender", select: USER_FIELDS },
+  { path: "receiver", select: USER_FIELDS },
+  { path: "mentions", select: USER_FIELDS },
+  {
+    path: "replyTo",
+    select: "message sender deleted createdAt",
+    populate: { path: "sender", select: "full_name username role" },
+  },
+];
+
+const populateMessage = (doc) => doc.populate(POPULATE);
 
 const loadChannelContext = async (user, rawChannelId) => {
   const channel = parseChannelId(rawChannelId);
@@ -47,6 +53,7 @@ const sendMessage = async ({
   text,
   mentionIds = [],
   attachments = [],
+  replyTo = null,
 }) => {
   const body = String(text ?? "").trim();
   const files = Array.isArray(attachments) ? attachments : [];
@@ -75,6 +82,14 @@ const sendMessage = async ({
       .map((u) => u._id);
   }
 
+  let replyRef = null;
+  if (replyTo) {
+    const parent = await Message.findById(replyTo);
+    if (parent && !parent.deleted && parent.channel === channel.id) {
+      replyRef = parent._id;
+    }
+  }
+
   const created = await Message.create({
     sender: user._id,
     channel: channel.id,
@@ -84,6 +99,7 @@ const sendMessage = async ({
     message: body || (files.length ? "📎 File" : ""),
     mentions,
     attachments: files,
+    replyTo: replyRef,
   });
 
   return populateMessage(created);
@@ -101,9 +117,7 @@ const getMessages = async ({ user, channelId, before, limit = 50 }) => {
   const messages = await Message.find(filter)
     .sort({ createdAt: -1 })
     .limit(pageSize)
-    .populate("sender", USER_FIELDS)
-    .populate("receiver", USER_FIELDS)
-    .populate("mentions", USER_FIELDS);
+    .populate(POPULATE);
 
   return messages.reverse();
 };
@@ -111,7 +125,9 @@ const getMessages = async ({ user, channelId, before, limit = 50 }) => {
 const getParticipants = async ({ user, channelId }) => {
   const { channel, group, peer } = await loadChannelContext(user, channelId);
 
-  if (channel.type === CHANNEL_TYPES.PRIVATE) return [user, peer];
+  if (channel.type === CHANNEL_TYPES.PRIVATE) {
+    return [user, peer].filter(Boolean);
+  }
 
   const ids = (group.members || []).map(idOf);
   if (group.supervisor) ids.push(idOf(group.supervisor));
@@ -164,6 +180,73 @@ const deleteMessage = async ({ user, messageId }) => {
   await msg.save();
 
   return populateMessage(msg);
+};
+
+const searchMessages = async ({
+  user,
+  q,
+  channelId,
+  limit = 30,
+  filesOnly = false,
+}) => {
+  const query = String(q || "").trim();
+  const wantFiles = Boolean(filesOnly);
+
+  if (!wantFiles && query.length < 2) {
+    throw new ChatError(400, "Search needs at least 2 characters");
+  }
+
+  const filter = {
+    deleted: { $ne: true },
+  };
+
+  if (query.length >= 2) {
+    const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    filter.message = { $regex: escaped, $options: "i" };
+  }
+
+  if (wantFiles) {
+    filter["attachments.0"] = { $exists: true };
+  }
+
+  const pageSize = Math.min(Math.max(parseInt(limit, 10) || 30, 1), 50);
+
+  if (channelId) {
+    const { channel } = await loadChannelContext(user, channelId);
+    filter.channel = channel.id;
+
+    return Message.find(filter)
+      .sort({ createdAt: -1 })
+      .limit(pageSize)
+      .populate("sender", USER_FIELDS)
+      .populate({
+        path: "replyTo",
+        select: "message sender deleted",
+        populate: { path: "sender", select: "full_name username" },
+      })
+      .lean();
+  }
+
+  const candidates = await Message.find(filter)
+    .sort({ createdAt: -1 })
+    .limit(100)
+    .populate("sender", USER_FIELDS)
+    .populate({
+      path: "replyTo",
+      select: "message sender deleted",
+      populate: { path: "sender", select: "full_name username" },
+    })
+    .lean();
+
+  const allowed = [];
+  for (const m of candidates) {
+    try {
+      await loadChannelContext(user, m.channel);
+      allowed.push(m);
+      if (allowed.length >= pageSize) break;
+    } catch {}
+  }
+  return allowed;
 };
 
 const broadcastMessage = (io, message) => {
@@ -223,4 +306,5 @@ module.exports = {
   deleteMessage,
   broadcastMessageUpdate,
   broadcastMessageDelete,
+  searchMessages,
 };

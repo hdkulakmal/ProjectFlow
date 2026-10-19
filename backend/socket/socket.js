@@ -62,17 +62,17 @@ const setupSocket = (io) => {
       socket.leave(String(channelId));
     });
 
-    // payload: { channel, message?, mentions?, attachments? }
     socket.on("send_message", async (data, ack) => {
       const reply = makeReply(ack);
       try {
-        const { channel, message, mentions, attachments } = data || {};
+        const { channel, message, mentions, attachments, replyTo } = data || {};
         const saved = await sendMessage({
           user: socket.user,
           channelId: channel,
           text: message,
           mentionIds: mentions,
           attachments,
+          replyTo,
         });
         broadcastMessage(io, saved);
         reply({ ok: true, data: saved });
@@ -86,7 +86,6 @@ const setupSocket = (io) => {
       }
     });
 
-    // payload: { messageId, message }
     socket.on("edit_message", async (data, ack) => {
       const reply = makeReply(ack);
       try {
@@ -105,7 +104,6 @@ const setupSocket = (io) => {
       }
     });
 
-    // payload: { messageId }
     socket.on("delete_message", async (data, ack) => {
       const reply = makeReply(ack);
       try {
@@ -123,6 +121,25 @@ const setupSocket = (io) => {
             : "Failed to delete message";
         reply({ ok: false, message: text });
       }
+    });
+
+    socket.on("typing_start", (data) => {
+      const channel = data?.channel;
+      if (!channel) return;
+      socket.to(channel).emit("user_typing", {
+        channel,
+        userId: idOf(socket.user),
+        name: socket.user.full_name || socket.user.username || "User",
+      });
+    });
+
+    socket.on("typing_stop", (data) => {
+      const channel = data?.channel;
+      if (!channel) return;
+      socket.to(channel).emit("user_stop_typing", {
+        channel,
+        userId: idOf(socket.user),
+      });
     });
 
     socket.on("disconnect", () => {

@@ -10,11 +10,9 @@ const { protect, allowChatRoles } = require("../middleware/chatAuth");
 
 const router = express.Router();
 
-// existing: Excel/CSV parse (no auth change — keep as-is)
 const memory = multer({ storage: multer.memoryStorage() });
 router.post("/", memory.single("file"), uploadExcelOrCsv);
 
-// NEW: chat file/folder upload  POST /api/upload/chat  field name: files
 router.post("/chat", protect, allowChatRoles, (req, res) => {
   uploadMany(req, res, (err) => {
     if (err) {

@@ -46,15 +46,12 @@ const isActiveUser = (user) => {
 const canChat = (user) =>
   isActiveUser(user) && CHAT_ROLES.includes(normalizeRole(user));
 
-// The supervisor who has ACCEPTED this group (null before that)
 const assignedSupervisorId = (group) => idOf(group?.supervisor);
 
-// ----------------------------- channel ids ---------------------------------
 const OID = "[a-fA-F0-9]{24}";
 const GROUP_RE = new RegExp(`^(group|supervisor|triad):(${OID})$`, "i");
 const PRIVATE_RE = new RegExp(`^private:(${OID}):(${OID})$`, "i");
 
-// Validates a channel id and returns it in canonical form
 const parseChannelId = (raw) => {
   const text = String(raw ?? "").trim();
 
@@ -86,7 +83,6 @@ const groupChannelId = (type, groupId) =>
 const privateChannelId = (userA, userB) =>
   parseChannelId(`private:${userA}:${userB}`).id;
 
-// ------------------------------ the rules -----------------------------------
 const deny = (status, reason) => ({ allowed: false, status, reason });
 const allow = { allowed: true };
 
@@ -98,7 +94,6 @@ const getChannelAccess = (user, channel, ctx = {}) => {
   }
   const me = idOf(user);
 
-  // ---- private: any chat user <-> any other chat user ----
   if (channel.type === CHANNEL_TYPES.PRIVATE) {
     if (!channel.userIds.includes(me)) {
       return deny(403, "This is not your conversation");
@@ -108,7 +103,6 @@ const getChannelAccess = (user, channel, ctx = {}) => {
     return allow;
   }
 
-  // ---- group based channels ----
   const group = ctx.group;
   if (!group) return deny(404, "Group not found");
 
@@ -126,14 +120,14 @@ const getChannelAccess = (user, channel, ctx = {}) => {
   );
 
   switch (channel.type) {
-    case CHANNEL_TYPES.GROUP: // students only
+    case CHANNEL_TYPES.GROUP:
       return isMember ? allow : notYours;
 
-    case CHANNEL_TYPES.SUPERVISOR: // students + supervisor
+    case CHANNEL_TYPES.SUPERVISOR:
       if (!isMember && !isGroupSupervisor) return notYours;
       return supervisorId ? allow : notReady;
 
-    case CHANNEL_TYPES.TRIAD: // students + supervisor + coordinator
+    case CHANNEL_TYPES.TRIAD:
       if (!isMember && !isGroupSupervisor && !isCoordinator) return notYours;
       return supervisorId ? allow : notReady;
 

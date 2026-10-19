@@ -15,17 +15,15 @@ const authenticateToken = async (token) => {
     throw new ChatError(401, "Invalid or expired token");
   }
 
-  // Support the common payload shapes: { id } / { userId } / { _id }
   const userId = decoded.id || decoded.userId || decoded._id;
   const user = userId
-    ? await User.findById(userId).select("-passwordHash").lean()
+    ? await User.findById(userId).select("-password -password_hash").lean()
     : null;
 
   if (!user) throw new ChatError(401, "User no longer exists");
   return user;
 };
 
-// Express middleware: reads "Authorization: Bearer <token>"
 const protect = async (req, res, next) => {
   try {
     const header = req.headers.authorization || "";
@@ -37,7 +35,6 @@ const protect = async (req, res, next) => {
   }
 };
 
-// Express middleware: only these roles may continue
 const allowRoles =
   (...roles) =>
   (req, res, next) => {
