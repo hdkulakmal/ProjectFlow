@@ -9,10 +9,18 @@ const path = require("path");
 const connectDB = require("./config/db");
 const errorHandler = require("./config/errorHandler");
 
+require("./model/User");
+
 const setupSocket = require("./socket/socket");
 const messageRoutes = require("./routes/messageRoutes");
 const channelRoutes = require("./routes/channelRoutes");
 const uploadRoutes = require("./routes/uploadRoutes");
+const messageRoutes = require("./routes/messageRoutes");
+const channelRoutes = require("./routes/channelRoutes");
+const uploadRoutes = require("./routes/uploadRoutes");
+const projectRoutes = require("./routes/projectRoutes");
+const groupRoutes = require("./routes/groupRoutes");
+const ideaRoutes = require("./routes/ideaRoutes");
 
 const app = express();
 const server = http.createServer(app);
@@ -49,6 +57,9 @@ app.get("/api/health", (req, res) => {
 app.use("/api/channels", channelRoutes);
 app.use("/api/messages", messageRoutes);
 app.use("/api/upload", uploadRoutes);
+app.use("/api/projects", projectRoutes);
+app.use("/api/groups", groupRoutes);
+app.use("/api/ideas", ideaRoutes);
 
 setupSocket(io);
 
