@@ -2,15 +2,21 @@ const express = require("express");
 
 const {
   createMessage,
-  getGroupMessages,
+  getChannelMessages,
+  searchChannelMessages,
+  updateMessage,
+  removeMessage,
 } = require("../controller/messageController");
+const { protect, allowChatRoles } = require("../middleware/chatAuth");
 
 const router = express.Router();
 
-// Create a new message
-router.post("/", createMessage);
+router.use(protect, allowChatRoles);
 
-// Get messages for a group
-router.get("/:groupId", getGroupMessages);
+router.post("/", createMessage);
+router.get("/search", searchChannelMessages);
+router.get("/:channelId", getChannelMessages);
+router.patch("/:id", updateMessage);
+router.delete("/:id", removeMessage);
 
 module.exports = router;

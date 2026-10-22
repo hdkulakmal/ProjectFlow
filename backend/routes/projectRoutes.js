@@ -1,3 +1,4 @@
+
 const express = require("express");
 
 const {
@@ -15,10 +16,11 @@ router.post("/", createProject);
 // Get all projects
 router.get("/", getProjects);
 
-// Get project details
+// Get one project by ID
 router.get("/:id", getProject);
 
-// Update project details
+
+// Update a project
 router.put("/:id", updateProject);
 
 module.exports = router;

@@ -53,3 +53,8 @@ Thumbs.db
 # =========================
 
 *.local
+
+# ProjectFlow temporary backups
+ProjectFlow-backup-20261010-safe/
+backend/server-changes-backup.txt
+user-model-check.txt
