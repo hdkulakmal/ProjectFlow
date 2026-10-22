@@ -1,9 +1,10 @@
+require("dotenv").config();
 
 const express = require("express");
 const cors = require("cors");
-const dotenv = require("dotenv");
 const http = require("http");
 const { Server } = require("socket.io");
+const path = require("path");
 
 const connectDB = require("./config/db");
 const errorHandler = require("./config/errorHandler");
@@ -12,25 +13,33 @@ require("./model/User");
 
 const setupSocket = require("./socket/socket");
 const messageRoutes = require("./routes/messageRoutes");
+const channelRoutes = require("./routes/channelRoutes");
+const uploadRoutes = require("./routes/uploadRoutes");
+const messageRoutes = require("./routes/messageRoutes");
+const channelRoutes = require("./routes/channelRoutes");
 const uploadRoutes = require("./routes/uploadRoutes");
 const projectRoutes = require("./routes/projectRoutes");
 const groupRoutes = require("./routes/groupRoutes");
 const ideaRoutes = require("./routes/ideaRoutes");
-dotenv.config();
 
 const app = express();
 const server = http.createServer(app);
 
+const CLIENT_URL = process.env.CLIENT_URL || "*";
+
 const io = new Server(server, {
   cors: {
-    origin: "*",
+    origin: CLIENT_URL,
   },
 });
 
-const PORT = process.env.PORT || 5000;
+app.set("io", io);
 
-app.use(cors());
+const PORT = process.env.PORT || 8000;
+
+app.use(cors({ origin: CLIENT_URL }));
 app.use(express.json());
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 connectDB();
 
@@ -45,6 +54,7 @@ app.get("/api/health", (req, res) => {
   });
 });
 
+app.use("/api/channels", channelRoutes);
 app.use("/api/messages", messageRoutes);
 app.use("/api/upload", uploadRoutes);
 app.use("/api/projects", projectRoutes);
