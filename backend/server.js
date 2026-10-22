@@ -12,14 +12,16 @@ const errorHandler = require("./config/errorHandler");
 require("./model/User");
 
 const setupSocket = require("./socket/socket");
+
+// Routes
 const messageRoutes = require("./routes/messageRoutes");
 const channelRoutes = require("./routes/channelRoutes");
 const uploadRoutes = require("./routes/uploadRoutes");
-const messageRoutes = require("./routes/messageRoutes");
-const channelRoutes = require("./routes/channelRoutes");
-const uploadRoutes = require("./routes/uploadRoutes");
-const projectRoutes = require("./routes/projectRoutes");
+const supervisorRoutes = require("./routes/supervisorRoutes");
+const supervisorRequestRoutes = require("./routes/supervisorRequestRoutes");
 const groupRoutes = require("./routes/groupRoutes");
+const projectRoutes = require("./routes/projectRoutes");
+const ganttRoutes = require("./routes/ganttRoutes");
 const ideaRoutes = require("./routes/ideaRoutes");
 
 const app = express();
@@ -54,11 +56,15 @@ app.get("/api/health", (req, res) => {
   });
 });
 
+// API Routes
 app.use("/api/channels", channelRoutes);
 app.use("/api/messages", messageRoutes);
 app.use("/api/upload", uploadRoutes);
-app.use("/api/projects", projectRoutes);
+app.use("/api/supervisors", supervisorRoutes);
+app.use("/api/supervisor-requests", supervisorRequestRoutes);
 app.use("/api/groups", groupRoutes);
+app.use("/api/projects", projectRoutes);
+app.use("/api/gantt", ganttRoutes);
 app.use("/api/ideas", ideaRoutes);
 
 setupSocket(io);

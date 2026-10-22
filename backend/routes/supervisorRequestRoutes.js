@@ -6,7 +6,7 @@ const {
   handleRequest,
 } = require("../controller/supervisorRequestController");
 
-const { protect } = require("../middleware/authMiddleware");
+const { protect } = require("../middleware/chatAuth");
 const { authorize } = require("../middleware/roleMiddleware");
 
 router.post("/", protect, authorize("Student"), createRequest);

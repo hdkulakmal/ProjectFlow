@@ -7,7 +7,7 @@ const {
   getMyGroups,
 } = require("../controller/supervisorController");
 
-const { protect } = require("../middleware/authMiddleware");
+const { protect } = require("../middleware/chatAuth");
 const { authorize } = require("../middleware/roleMiddleware");
 
 router.get("/", protect, getAllSupervisors);

@@ -1,25 +1,47 @@
 
 const express = require("express");
-
+const upload = require("../middleware/uploadMiddleware");
 const {
   createGroup,
   getGroups,
   getGroup,
   updateGroup,
+  uploadAndGenerateGroups,
+  confirmGroup,
 } = require("../controller/groupController");
+
+const { protect } = require("../middleware/chatAuth");
+const { authorize } = require("../middleware/roleMiddleware");
 
 const router = express.Router();
 
 // Create a group
-router.post("/", createGroup);
+router.post("/", protect, createGroup);
 
 // Get all groups
-router.get("/", getGroups);
+router.get("/", protect, getGroups);
 
-// Get one group by ID
-router.get("/:id", getGroup);
+// Get group details
+router.get("/:id", protect, getGroup);
 
-// Update a group
-router.put("/:id", updateGroup);
+// Update group details
+router.put("/:id", protect, updateGroup);
+
+// Upload Excel & Auto-Generate Draft Groups
+router.post(
+  "/upload-excel",
+  protect,
+  authorize("Coordinator"),
+  upload.single("file"),
+  uploadAndGenerateGroups
+);
+
+// Confirm or Edit Draft Group Details
+router.put(
+  "/:groupId/confirm",
+  protect,
+  authorize("Coordinator"),
+  confirmGroup
+); 
 
 module.exports = router;
