@@ -1,9 +1,14 @@
+const dns = require("dns");
+dns.setServers(["8.8.8.8", "8.8.4.4"]);
+
 const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
 const connectDB = require("./config/db");
 const errorHandler = require("./config/errorHandler");
 const authRoutes = require("./routes/authRoutes");
+const authMiddleware = require("./middleware/authMiddleware");
+const roleMiddleware = require("./middleware/roleMiddleware");
 
 dotenv.config();
 
@@ -27,6 +32,35 @@ app.get("/api/health", (req, res) => {
 });
 
 app.use("/api/auth", authRoutes);
+
+app.get("/api/auth/profile", authMiddleware, (req, res) => {
+    res.status(200).json({
+        message: "Authentication successful",
+        user: req.user
+    });
+});
+
+app.get(
+    "/api/test/coordinator",
+    authMiddleware,
+    roleMiddleware("Coordinator"),
+    (req, res) => {
+        res.status(200).json({
+            message: "Coordinator access granted"
+        });
+    }
+);
+
+app.get(
+    "/api/test/student",
+    authMiddleware,
+    roleMiddleware("Student"),
+    (req, res) => {
+        res.status(200).json({
+            message: "Student access granted"
+        });
+    }
+);
 
 app.use(errorHandler);
 // Server

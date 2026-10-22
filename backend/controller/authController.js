@@ -5,7 +5,9 @@ const jwt = require("jsonwebtoken");
 
 const registerUser = async (req, res) => {
     try {
-        const { fullName, email, password, role, phoneNumber } = req.body;
+        const { fullName, email, password, phoneNumber } = req.body;
+
+        const role = "Student";
 
         if (!fullName || !email || !password || !role) {
             return res.status(400).json({
@@ -83,7 +85,6 @@ const loginUser = async (req, res) => {
             });
         }
 
-        // Create a JWT token
         const token = jwt.sign(
             {
                 userId: user._id,
