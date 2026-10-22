@@ -23,6 +23,9 @@ const groupRoutes = require("./routes/groupRoutes");
 const projectRoutes = require("./routes/projectRoutes");
 const ganttRoutes = require("./routes/ganttRoutes");
 const ideaRoutes = require("./routes/ideaRoutes");
+const authRoutes = require("./routes/authRoutes");
+
+const authMiddleware = require("./middleware/authMiddleware");
 
 const app = express();
 const server = http.createServer(app);
@@ -57,6 +60,16 @@ app.get("/api/health", (req, res) => {
 });
 
 // API Routes
+app.use("/api/auth", authRoutes);
+
+
+app.get("/api/auth/profile", authMiddleware, (req, res) => {
+  res.status(200).json({
+    message: "Authentication successful",
+    user: req.user,
+  });
+});
+
 app.use("/api/channels", channelRoutes);
 app.use("/api/messages", messageRoutes);
 app.use("/api/upload", uploadRoutes);
