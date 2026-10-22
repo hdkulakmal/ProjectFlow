@@ -1,61 +1,120 @@
-const Message = require("../model/Message");
+const { ChatError } = require("../utils/chatAccess");
+const {
+  sendMessage,
+  getMessages,
+  broadcastMessage,
+  editMessage,
+  deleteMessage,
+  broadcastMessageUpdate,
+  broadcastMessageDelete,
+  searchMessages,
+} = require("../utils/chatService");
 
-// Create a new message
+const handleError = (res, error, fallback) => {
+  if (error instanceof ChatError) {
+    return res.status(error.status).json({ message: error.message });
+  }
+  console.error(fallback, error);
+  res.status(500).json({ message: fallback });
+};
+
 const createMessage = async (req, res) => {
   try {
-    const { sender, group, message, mentions = [] } = req.body;
-
-    if (!sender || !group || !message) {
-      return res.status(400).json({
-        message: "sender, group and message are required",
-      });
+    const { channel, message, mentions, attachments, replyTo } = req.body;
+    if (!channel) {
+      return res.status(400).json({ message: "channel is required" });
+    }
+    if (!message && !(attachments && attachments.length)) {
+      return res
+        .status(400)
+        .json({ message: "message or attachments required" });
     }
 
-    const newMessage = await Message.create({
-      sender,
-      group,
-      message,
-      mentions,
+    const saved = await sendMessage({
+      user: req.user,
+      channelId: channel,
+      text: message,
+      mentionIds: mentions,
+      attachments,
+      replyTo,
     });
 
-    res.status(201).json({
-      message: "Message created successfully",
-      data: newMessage,
-    });
+    broadcastMessage(req.app.get("io"), saved);
+    res
+      .status(201)
+      .json({ message: "Message created successfully", data: saved });
   } catch (error) {
-    console.error("Create message error:", error);
-
-    res.status(500).json({
-      message: "Failed to create message",
-    });
+    handleError(res, error, "Failed to create message");
   }
 };
 
-// Get messages for a group
-const getGroupMessages = async (req, res) => {
+const getChannelMessages = async (req, res) => {
   try {
-    const { groupId } = req.params;
+    const data = await getMessages({
+      user: req.user,
+      channelId: req.params.channelId,
+      before: req.query.before,
+      limit: req.query.limit,
+    });
+    res.status(200).json({ data });
+  } catch (error) {
+    handleError(res, error, "Failed to get messages");
+  }
+};
 
-    const messages = await Message.find({
-      group: groupId,
-    })
-      .sort({ createdAt: 1 })
-      .populate("sender", "username full_name email")
-      .populate("mentions", "username full_name email");
+const searchChannelMessages = async (req, res) => {
+  try {
+    const data = await searchMessages({
+      user: req.user,
+      q: req.query.q,
+      channelId: req.query.channel || null,
+      limit: req.query.limit,
+      filesOnly:
+        req.query.filesOnly === "1" ||
+        req.query.filesOnly === "true" ||
+        req.query.filesOnly === true,
+    });
+    res.status(200).json({ data });
+  } catch (error) {
+    handleError(res, error, "Search failed");
+  }
+};
 
-    res.status(200).json({
-      data: messages,
+const updateMessage = async (req, res) => {
+  try {
+    const updated = await editMessage({
+      user: req.user,
+      messageId: req.params.id,
+      text: req.body.message,
+    });
+    broadcastMessageUpdate(req.app.get("io"), updated);
+    res.json({ message: "Message updated", data: updated });
+  } catch (error) {
+    handleError(res, error, "Failed to update message");
+  }
+};
+
+const removeMessage = async (req, res) => {
+  try {
+    const removed = await deleteMessage({
+      user: req.user,
+      messageId: req.params.id,
+    });
+    broadcastMessageDelete(req.app.get("io"), removed);
+    res.json({
+      message: "Message deleted",
+      data: { _id: removed._id, channel: removed.channel, deleted: true },
     });
   } catch (error) {
-    console.error("Get messages error:", error);
-
-    res.status(500).json({
-      message: "Failed to get messages",
-    });
+    handleError(res, error, "Failed to delete message");
   }
 };
 
 module.exports = {
   createMessage,
-  getGroupMessages,
+  getChannelMessages,
+  searchChannelMessages,
+  updateMessage,
+  removeMessage,
+  handleError,
 };

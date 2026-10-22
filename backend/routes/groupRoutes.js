@@ -1,20 +1,25 @@
+
 const express = require("express");
 const upload = require("../middleware/uploadMiddleware");
 const {
   createGroup,
+  getGroups,
   getGroup,
   updateGroup,
   uploadAndGenerateGroups,
   confirmGroup,
 } = require("../controller/groupController");
 
-const { protect } = require("../middleware/authMiddleware");
+const { protect } = require("../middleware/chatAuth");
 const { authorize } = require("../middleware/roleMiddleware");
 
 const router = express.Router();
 
 // Create a group
 router.post("/", protect, createGroup);
+
+// Get all groups
+router.get("/", protect, getGroups);
 
 // Get group details
 router.get("/:id", protect, getGroup);
@@ -32,6 +37,11 @@ router.post(
 );
 
 // Confirm or Edit Draft Group Details
-router.put("/:groupId/confirm", protect, authorize("Coordinator"), confirmGroup);
+router.put(
+  "/:groupId/confirm",
+  protect,
+  authorize("Coordinator"),
+  confirmGroup
+); 
 
 module.exports = router;
