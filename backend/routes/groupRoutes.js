@@ -21,6 +21,9 @@ router.post("/", protect, createGroup);
 // Get all groups
 router.get("/", protect, getGroups);
 
+// Get all groups
+router.get("/", getGroups);
+
 // Get group details
 router.get("/:id", protect, getGroup);
 

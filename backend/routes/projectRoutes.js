@@ -19,6 +19,7 @@ router.get("/", getProjects);
 // Get one project by ID
 router.get("/:id", getProject);
 
+
 // Update a project
 router.put("/:id", updateProject);
 

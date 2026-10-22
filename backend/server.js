@@ -67,6 +67,9 @@ app.use("/api/projects", projectRoutes);
 app.use("/api/gantt", ganttRoutes);
 app.use("/api/ideas", ideaRoutes);
 
+app.use("/api/projects", projectRoutes);
+app.use("/api/groups", groupRoutes);
+
 setupSocket(io);
 
 app.use(errorHandler);

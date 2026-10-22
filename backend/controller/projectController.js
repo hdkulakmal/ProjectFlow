@@ -39,10 +39,10 @@ const getProjects = async (req, res) => {
       .populate("group")
       .populate("supervisor");
 
-    res.status(200).json({
-      count: projects.length,
-      projects,
-    });
+res.status(200).json({
+  count: projects.length,
+  projects,
+});
   } catch (error) {
     res.status(500).json({
       message: "Failed to get projects",
@@ -53,6 +53,7 @@ const getProjects = async (req, res) => {
 
 // Get one project by ID
 const getProject = async (req, res) => {
+
   try {
     const project = await Project.findById(req.params.id)
       .populate("group")

@@ -47,9 +47,9 @@ const getGroups = async (req, res) => {
       .populate("supervisor");
 
     res.status(200).json({
-      count: groups.length,
-      groups,
-    });
+  count: groups.length,
+  groups,
+});
   } catch (error) {
     res.status(500).json({
       message: "Failed to get groups",
@@ -59,6 +59,7 @@ const getGroups = async (req, res) => {
 };
 
 // Get one group by ID
+
 const getGroup = async (req, res) => {
   try {
     const group = await Group.findById(req.params.id)
