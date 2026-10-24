@@ -1,3 +1,13 @@
 node_modules/
 .env
-uploads/
+uploads/.env
+database-backup/
+gantt-code-backup/
+backupCollections.js
+cleanupOldBatches.js
+createTestCoordinator.js
+inspectCollections.js
+linkTestProject.js
+previewCleanup.js
+testProject.js
+verifyTestProject.js

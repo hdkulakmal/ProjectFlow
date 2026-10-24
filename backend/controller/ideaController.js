@@ -1,5 +1,5 @@
 
-const Project = require("../model/Project");
+const HistoricalProject = require("../model/HistoricalProject");
 
 // Words that usually don't help identify a project's topic
 const stopWords = new Set([
@@ -17,7 +17,7 @@ const getKeywords = (text) =>
     .split(/\s+/)
     .filter((word) => word.length > 2 && !stopWords.has(word));
 
-// Check a student's idea against existing projects
+// Check a student's idea against historical projects
 const checkSimilarIdeas = async (req, res) => {
   try {
     const { idea } = req.body;
@@ -28,7 +28,9 @@ const checkSimilarIdeas = async (req, res) => {
       });
     }
 
-    const projects = await Project.find().populate("group");
+    // Search the separate historical project collection
+    const projects = await HistoricalProject.find().lean();
+
     const ideaKeywords = new Set(getKeywords(idea));
 
     if (ideaKeywords.size === 0) {
@@ -40,7 +42,7 @@ const checkSimilarIdeas = async (req, res) => {
     }
 
     const matches = projects
-      .filter((project) => project.group && project.title)
+      .filter((project) => project.title)
       .map((project) => {
         const titleKeywords = new Set(getKeywords(project.title));
 
@@ -48,17 +50,14 @@ const checkSimilarIdeas = async (req, res) => {
           titleKeywords.has(word)
         );
 
-        // Require at least two meaningful shared keywords
-        const isStrongMatch = commonKeywords.length >= 1;
         return {
-          year: project.group.batch,
+          year: project.batch,
           projectName: project.title,
-          groupNumber: project.group.groupNumber,
-          isStrongMatch,
+          groupNumber: project.groupNumber,
           sharedKeywordCount: commonKeywords.length,
         };
       })
-      .filter((project) => project.isStrongMatch)
+      .filter((project) => project.sharedKeywordCount >= 1)
       .sort(
         (a, b) => b.sharedKeywordCount - a.sharedKeywordCount
       )
@@ -68,15 +67,16 @@ const checkSimilarIdeas = async (req, res) => {
         groupNumber,
       }));
 
-    res.status(200).json({
+    return res.status(200).json({
       idea,
       count: matches.length,
       matches,
     });
   } catch (error) {
-    res.status(500).json({
+    console.error("Similar idea check failed:", error);
+
+    return res.status(500).json({
       message: "Failed to check similar ideas",
-      error: error.message,
     });
   }
 };

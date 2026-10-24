@@ -1,10 +1,12 @@
 
 const express = require("express");
 const upload = require("../middleware/uploadMiddleware");
+
 const {
   createGroup,
   getGroups,
   getGroup,
+  getMyGroup,
   updateGroup,
   uploadAndGenerateGroups,
   confirmGroup,
@@ -18,19 +20,13 @@ const router = express.Router();
 // Create a group
 router.post("/", protect, createGroup);
 
-// Get all groups
+// Get all groups (authenticated users only)
 router.get("/", protect, getGroups);
 
-// Get all groups
-router.get("/", getGroups);
+// Get the logged-in student's group
+router.get("/my-group", protect, getMyGroup);
 
-// Get group details
-router.get("/:id", protect, getGroup);
-
-// Update group details
-router.put("/:id", protect, updateGroup);
-
-// Upload Excel & Auto-Generate Draft Groups
+// Upload Excel (Coordinator only)
 router.post(
   "/upload-excel",
   protect,
@@ -39,12 +35,18 @@ router.post(
   uploadAndGenerateGroups
 );
 
-// Confirm or Edit Draft Group Details
+// Confirm or edit group (Coordinator only)
 router.put(
   "/:groupId/confirm",
   protect,
   authorize("Coordinator"),
   confirmGroup
-); 
+);
+
+// Get group details by ID
+router.get("/:id", protect, getGroup);
+
+// Update group details
+router.put("/:id", protect, updateGroup);
 
 module.exports = router;
