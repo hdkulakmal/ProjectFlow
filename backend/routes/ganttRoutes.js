@@ -1,8 +1,11 @@
+
 const express = require("express");
 const router = express.Router();
 
 const {
   saveOrUpdateGantt,
+  requestTaskCompletion,
+  reviewTaskCompletion,
   finalizeGanttChart,
   getGanttCharts,
 } = require("../controller/ganttController");
@@ -10,37 +13,34 @@ const {
 const { protect } = require("../middleware/chatAuth");
 const { authorize } = require("../middleware/roleMiddleware");
 
-// Student routes
-router.post(
-  "/save",
-  protect,
+router.use(protect);
+
+// Student creates or updates their group's task list.
+router.post("/save", authorize("Student"), saveOrUpdateGantt);
+
+// Student requests completion approval for an individual task.
+router.patch(
+  "/:groupId/tasks/:taskId/request-completion",
   authorize("Student"),
-  saveOrUpdateGantt
+  requestTaskCompletion
 );
 
-// Supervisor routes
+// Assigned supervisor approves or rejects task completion.
+router.patch(
+  "/:groupId/tasks/:taskId/review",
+  authorize("Supervisor"),
+  reviewTaskCompletion
+);
+
+// Supervisor finalizes the whole chart.
 router.patch(
   "/finalize/:groupId",
-  protect,
   authorize("Supervisor"),
   finalizeGanttChart
 );
 
-// Coordinator & General viewing routes
-// Get all accessible Gantt charts
-router.get(
-  "/",
-  protect,
-  authorize("Coordinator", "Supervisor", "Student"),
-  getGanttCharts
-);
+// Read charts, with group access checked by the controller.
+router.get("/", authorize("Coordinator", "Supervisor", "Student"), getGanttCharts);
+router.get("/:groupId", authorize("Coordinator", "Supervisor", "Student"), getGanttCharts);
 
-// Get Gantt chart by group ID
-router.get(
-  "/:groupId",
-  protect,
-  authorize("Coordinator", "Supervisor", "Student"),
-  getGanttCharts
-);
-    
 module.exports = router;

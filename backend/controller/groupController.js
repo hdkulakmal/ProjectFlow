@@ -82,6 +82,39 @@ const getGroup = async (req, res) => {
   }
 };
 
+
+const getMyGroup = async (req, res) => {
+  try {
+    const userId = req.user.userId || req.user._id;
+
+    if (!userId) {
+      return res.status(401).json({
+        message: "User authentication is required.",
+      });
+    }
+
+    const group = await Group.findOne({
+      members: userId,
+    })
+      .populate("members", "fullName email role")
+      .populate("project")
+      .populate("supervisor", "fullName email role");
+
+    if (!group) {
+      return res.status(404).json({
+        message: "No group has been assigned to this student yet.",
+      });
+    }
+
+    return res.status(200).json({ group });
+  } catch (error) {
+    return res.status(500).json({
+      message: "Failed to get your group.",
+    });
+  }
+};
+
+
 // Update group details
 const updateGroup = async (req, res) => {
   try {
@@ -117,70 +150,202 @@ const updateGroup = async (req, res) => {
 // ==========================================
 
 // Upload Excel & Auto-Generate Draft Groups
+
 const uploadAndGenerateGroups = async (req, res) => {
+  let filePath;
+
   try {
     if (!req.file) {
-      return res.status(400).json({ message: "Please upload an Excel file." });
+      return res.status(400).json({
+        message: "Please upload an Excel or CSV file.",
+      });
     }
 
-    const { groupSize = 5, batch = "2024" } = req.body;
-    const parsedGroupSize = parseInt(groupSize, 10);
+    filePath = req.file.path;
 
-    const workbook = xlsx.readFile(req.file.path);
+    const workbook = xlsx.readFile(filePath);
     const sheetName = workbook.SheetNames[0];
-    const rawStudents = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
 
-    // Clean up temporary file
-    fs.unlinkSync(req.file.path);
-
-    if (!rawStudents || rawStudents.length === 0) {
-      return res.status(400).json({ message: "Uploaded Excel file is empty." });
+    if (!sheetName) {
+      return res.status(400).json({
+        message: "The uploaded file contains no worksheet.",
+      });
     }
 
-    const studentIds = [];
-    for (const studentData of rawStudents) {
-      const name = studentData.Name || studentData.name;
-      const email = studentData.Email || studentData.email;
-      const regNo = studentData.RegNo || studentData.regNo || studentData["Registration No"];
+    const rows = xlsx.utils.sheet_to_json(
+      workbook.Sheets[sheetName],
+      { defval: "" }
+    );
 
-      if (!email || !name) continue;
+    if (rows.length === 0) {
+      return res.status(400).json({
+        message: "The uploaded file is empty.",
+      });
+    }
 
-      let user = await User.findOne({ email });
-      if (!user) {
-        user = await User.create({
-          name,
-          email,
-          regNo: regNo || "",
-          role: "Student",
+    // Read and validate all spreadsheet rows first.
+    const assignments = [];
+    const seenEmails = new Set();
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+
+      const email = String(
+        row.Email || row.email || ""
+      ).trim().toLowerCase();
+
+      const groupValue =
+        row.GroupNumber ?? row.groupNumber ?? row["Group Number"];
+
+      const batch = String(
+        row.Batch || row.batch || ""
+      ).trim();
+
+      const groupNumber = Number(groupValue);
+
+      if (
+        !email ||
+        !batch ||
+        groupValue === "" ||
+        !Number.isInteger(groupNumber) ||
+        groupNumber < 1
+      ) {
+        return res.status(400).json({
+          message: `Invalid data in spreadsheet row ${i + 2}. Check Email, GroupNumber, and Batch.`,
         });
       }
-      studentIds.push(user._id);
+
+      if (seenEmails.has(email)) {
+        return res.status(400).json({
+          message: `Duplicate email in spreadsheet: ${email}`,
+        });
+      }
+
+      seenEmails.add(email);
+      assignments.push({ email, groupNumber, batch });
     }
 
-    const generatedGroups = [];
-    let groupIndex = 1;
+    // Match existing student accounts. Do not create accounts here.
+    const emails = assignments.map((item) => item.email);
 
-    for (let i = 0; i < studentIds.length; i += parsedGroupSize) {
-      const chunk = studentIds.slice(i, i + parsedGroupSize);
-      const newGroup = await Group.create({
-        groupNumber: `Group ${groupIndex++}`,
-        batch,
-        members: chunk,
-        isConfirmed: false,
-        status: "Draft",
+    const users = await User.find({
+      email: { $in: emails },
+      role: "Student",
+    }).select("_id email");
+
+    const usersByEmail = new Map(
+      users.map((user) => [
+        user.email.toLowerCase(),
+        user,
+      ])
+    );
+
+    const missingEmails = emails.filter(
+      (email) => !usersByEmail.has(email)
+    );
+
+    if (missingEmails.length > 0) {
+      return res.status(400).json({
+        message:
+          "Some spreadsheet emails do not match registered student accounts.",
+        missingEmails,
       });
-      generatedGroups.push(newGroup);
     }
 
-    res.status(201).json({
-      message: `Generated ${generatedGroups.length} draft groups.`,
-      groups: generatedGroups,
+    // Prepare assignments by group number and batch.
+    const groupMap = new Map();
+
+    for (const assignment of assignments) {
+      const key = `${assignment.batch}::${assignment.groupNumber}`;
+
+      if (!groupMap.has(key)) {
+        groupMap.set(key, {
+          groupNumber: assignment.groupNumber,
+          batch: assignment.batch,
+          members: [],
+        });
+      }
+
+      groupMap.get(key).members.push(
+        usersByEmail.get(assignment.email)._id
+      );
+    }
+
+    // Check existing groups before making any changes.
+    const plannedGroups = [...groupMap.values()];
+    const batches = [...new Set(
+      plannedGroups.map((group) => group.batch)
+    )];
+
+    const existingGroups = await Group.find({
+      batch: { $in: batches },
+    });
+
+    const existingByKey = new Map(
+      existingGroups.map((group) => [
+        `${group.batch}::${group.groupNumber}`,
+        group,
+      ])
+    );
+
+    // Do not overwrite project-topic reference records.
+    const conflicts = plannedGroups.filter((planned) => {
+      const existing = existingByKey.get(
+        `${planned.batch}::${planned.groupNumber}`
+      );
+
+      return existing && existing.project;
+    });
+
+    if (conflicts.length > 0) {
+      return res.status(409).json({
+        message:
+          "Some target group numbers already have projects. No groups were changed.",
+        conflicts: conflicts.map((group) => ({
+          batch: group.batch,
+          groupNumber: group.groupNumber,
+        })),
+      });
+    }
+
+    // Save the assignments while preserving project/supervisor fields.
+    const savedGroups = [];
+
+    for (const planned of plannedGroups) {
+      const existing = existingByKey.get(
+        `${planned.batch}::${planned.groupNumber}`
+      );
+
+      if (existing) {
+        existing.members = planned.members;
+        await existing.save();
+        savedGroups.push(existing);
+      } else {
+        const created = await Group.create(planned);
+        savedGroups.push(created);
+      }
+    }
+
+    return res.status(200).json({
+      message: "Student group assignments imported successfully.",
+      groupCount: savedGroups.length,
+      studentCount: assignments.length,
+      groups: savedGroups,
     });
   } catch (error) {
-    res.status(500).json({
-      message: "Failed to process Excel file",
-      error: error.message,
+    console.error("Group upload error:", error.message);
+
+    return res.status(500).json({
+      message: "Failed to import group assignments.",
     });
+  } finally {
+    if (filePath && fs.existsSync(filePath)) {
+      fs.unlink(filePath, (error) => {
+        if (error) {
+          console.error("Failed to remove uploaded file:", error.message);
+        }
+      });
+    }
   }
 };
 
@@ -219,6 +384,7 @@ module.exports = {
   createGroup,
   getGroups,
   getGroup,
+  getMyGroup,
   updateGroup,
   uploadAndGenerateGroups,
   confirmGroup,

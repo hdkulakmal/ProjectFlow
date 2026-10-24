@@ -8,19 +8,19 @@ const {
   updateProject,
 } = require("../controller/projectController");
 
+const { protect } = require("../middleware/chatAuth");
+const { authorize } = require("../middleware/roleMiddleware");
+
 const router = express.Router();
 
-// Create a project
-router.post("/", createProject);
+// Only coordinators can create projects
+router.post("/", protect, authorize("Coordinator"), createProject);
 
-// Get all projects
-router.get("/", getProjects);
+// Authenticated users can view projects
+router.get("/", protect, getProjects);
+router.get("/:id", protect, getProject);
 
-// Get one project by ID
-router.get("/:id", getProject);
-
-
-// Update a project
-router.put("/:id", updateProject);
+// Only coordinators can update projects
+router.put("/:id", protect, authorize("Coordinator"), updateProject);
 
 module.exports = router;

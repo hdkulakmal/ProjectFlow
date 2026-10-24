@@ -10,6 +10,7 @@ const path = require("path");
 const connectDB = require("./config/db");
 const errorHandler = require("./config/errorHandler");
 const setupSocket = require("./socket/socket");
+const { setIo } = require("./utils/notify");
 
 // Load User model
 require("./model/User");
@@ -27,6 +28,13 @@ const groupRoutes = require("./routes/groupRoutes");
 const projectRoutes = require("./routes/projectRoutes");
 const ganttRoutes = require("./routes/ganttRoutes");
 const ideaRoutes = require("./routes/ideaRoutes");
+const userRoutes = require("./routes/userRoutes");
+const announcementRoutes = require("./routes/announcementRoutes");
+const notificationRoutes = require("./routes/notificationRoutes");
+const weeklyEvaluationRoutes = require("./routes/weeklyEvaluationRoutes");
+const submissionRoutes = require("./routes/submissionRoutes");
+const meetingRoutes = require("./routes/meetingRoutes");
+
 
 const app = express();
 const server = http.createServer(app);
@@ -41,12 +49,16 @@ const io = new Server(server, {
 });
 
 app.set("io", io);
+setIo(io);
 
 app.use(cors({ origin: CLIENT_URL }));
 app.use(express.json());
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
-
-connectDB();
+app.use("/api/announcements", announcementRoutes);
+app.use("/api/notifications", notificationRoutes);
+app.use("/api/weekly-evaluations", weeklyEvaluationRoutes);
+app.use("/api/submissions", submissionRoutes);
+app.use("/api/meetings", meetingRoutes);
 
 // Health checks
 app.get("/", (req, res) => {
@@ -62,6 +74,9 @@ app.get("/api/health", (req, res) => {
 
 // Authentication routes
 app.use("/api/auth", authRoutes);
+
+// User management routes
+app.use("/api/users", userRoutes);
 
 app.get("/api/auth/profile", authMiddleware, (req, res) => {
   res.status(200).json({
@@ -84,6 +99,8 @@ app.use("/api/ideas", ideaRoutes);
 setupSocket(io);
 
 app.use(errorHandler);
+
+connectDB();
 
 server.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);

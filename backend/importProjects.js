@@ -4,24 +4,34 @@ const xlsx = require("xlsx");
 const dotenv = require("dotenv");
 const path = require("path");
 
-const Group = require("./model/Group");
-const Project = require("./model/Project");
+const HistoricalProject = require("./model/HistoricalProject");
 
 dotenv.config();
 
 const excelPath = path.join(__dirname, "All Project Titles.xlsx");
 
 async function importProjects() {
+  let connected = false;
+
   try {
     await mongoose.connect(process.env.MONGO_URI);
+    connected = true;
     console.log("MongoDB connected successfully");
 
     const workbook = xlsx.readFile(excelPath);
+
     let imported = 0;
     let skipped = 0;
 
     for (const sheetName of workbook.SheetNames) {
+      // Only process sheets named with a year, such as 2022 or 2025
       const year = Number(sheetName);
+
+      if (!Number.isInteger(year) || year < 1900 || year > 2100) {
+        console.log(`Skipped non-year sheet: ${sheetName}`);
+        continue;
+      }
+
       const sheet = workbook.Sheets[sheetName];
 
       const rows = xlsx.utils.sheet_to_json(sheet, {
@@ -37,7 +47,12 @@ async function importProjects() {
           key.toLowerCase().includes("title")
         );
 
-        if (!groupKey || !titleKey || !row[groupKey] || !row[titleKey]) {
+        if (
+          !groupKey ||
+          !titleKey ||
+          !row[groupKey] ||
+          !row[titleKey]
+        ) {
           skipped++;
           continue;
         }
@@ -45,57 +60,52 @@ async function importProjects() {
         const groupNumber = Number(
           String(row[groupKey]).match(/\d+/)?.[0]
         );
+
         const title = String(row[titleKey]).trim();
+        const batch = String(year);
 
         if (!Number.isInteger(groupNumber) || !title) {
           skipped++;
           continue;
         }
 
-        const batch = String(year);
-
-        let group = await Group.findOne({
-          groupNumber,
+        // Avoid importing the same batch/group more than once
+        const existingProject = await HistoricalProject.findOne({
           batch,
-        });
-
-        if (!group) {
-          group = await Group.create({
-            groupNumber,
-            batch,
-          });
-        }
-
-        const existingProject = await Project.findOne({
-          group: group._id,
+          groupNumber,
         });
 
         if (existingProject) {
-          console.log(`Skipped existing project: ${batch}, Group ${groupNumber}`);
+          console.log(
+            `Skipped existing historical record: ${batch}, Group ${groupNumber}`
+          );
           skipped++;
           continue;
         }
 
-        const project = await Project.create({
+        await HistoricalProject.create({
           title,
-          group: group._id,
+          batch,
+          groupNumber,
         });
 
-        group.project = project._id;
-        await group.save();
-
         imported++;
-        console.log(`Imported ${batch} - Group ${groupNumber}: ${title}`);
+
+        console.log(
+          `Imported historical project: ${batch}, Group ${groupNumber}: ${title}`
+        );
       }
     }
 
-    console.log("\nImport finished!");
+    console.log("\nHistorical import finished!");
     console.log(`Imported: ${imported}`);
     console.log(`Skipped: ${skipped}`);
   } catch (error) {
-    console.error("Import failed:", error.message);
+    console.error("Historical import failed:", error.message);
   } finally {
-    await mongoose.disconnect();
+    if (connected) {
+      await mongoose.disconnect();
+    }
   }
 }
 
