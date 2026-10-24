@@ -1,3 +1,4 @@
+
 require("dotenv").config();
 
 const express = require("express");
@@ -8,12 +9,15 @@ const path = require("path");
 
 const connectDB = require("./config/db");
 const errorHandler = require("./config/errorHandler");
-
-require("./model/User");
-
 const setupSocket = require("./socket/socket");
 
+// Load User model
+require("./model/User");
+
 // Routes
+const authRoutes = require("./routes/authRoutes");
+const authMiddleware = require("./middleware/authMiddleware");
+
 const messageRoutes = require("./routes/messageRoutes");
 const channelRoutes = require("./routes/channelRoutes");
 const uploadRoutes = require("./routes/uploadRoutes");
@@ -28,6 +32,7 @@ const app = express();
 const server = http.createServer(app);
 
 const CLIENT_URL = process.env.CLIENT_URL || "*";
+const PORT = process.env.PORT || 8000;
 
 const io = new Server(server, {
   cors: {
@@ -37,14 +42,13 @@ const io = new Server(server, {
 
 app.set("io", io);
 
-const PORT = process.env.PORT || 8000;
-
 app.use(cors({ origin: CLIENT_URL }));
 app.use(express.json());
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 connectDB();
 
+// Health checks
 app.get("/", (req, res) => {
   res.send("ProjectFlow Backend is running!");
 });
@@ -56,7 +60,17 @@ app.get("/api/health", (req, res) => {
   });
 });
 
-// API Routes
+// Authentication routes
+app.use("/api/auth", authRoutes);
+
+app.get("/api/auth/profile", authMiddleware, (req, res) => {
+  res.status(200).json({
+    message: "Authentication successful",
+    user: req.user,
+  });
+});
+
+// Existing project routes
 app.use("/api/channels", channelRoutes);
 app.use("/api/messages", messageRoutes);
 app.use("/api/upload", uploadRoutes);
@@ -66,9 +80,6 @@ app.use("/api/groups", groupRoutes);
 app.use("/api/projects", projectRoutes);
 app.use("/api/gantt", ganttRoutes);
 app.use("/api/ideas", ideaRoutes);
-
-app.use("/api/projects", projectRoutes);
-app.use("/api/groups", groupRoutes);
 
 setupSocket(io);
 
