@@ -1,122 +1,99 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import Login from './pages/Login';
+import StudentDashboard from './pages/student/StudentDashboard';
 
-function App() {
-  const [count, setCount] = useState(0)
+// Protected Route Component
+function ProtectedRoute({ children, allowedRoles }) {
+  const { user, loading } = useAuth();
 
-  return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+  if (loading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-surface">
+        <p className="text-sm font-medium text-primary">Loading ProjectFlow...</p>
+      </div>
+    );
+  }
 
-      <div className="ticks"></div>
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+  if (allowedRoles && !allowedRoles.includes(user.role)) {
+    return <Navigate to="/login" replace />;
+  }
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+  return children;
 }
 
-export default App
+// Temporary Placeholder Dashboard Component for Supervisor & Coordinator
+function DashboardPlaceholder({ title, role }) {
+  const { user, logout } = useAuth();
+  return (
+    <div className="min-h-screen bg-surface p-8">
+      <div className="max-w-4xl mx-auto bg-white p-6 rounded-xl border border-outline-variant shadow-sm">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold text-primary">{title}</h1>
+          <button
+            onClick={logout}
+            className="px-4 py-2 bg-error text-white rounded-lg text-sm font-semibold hover:opacity-90"
+          >
+            Logout
+          </button>
+        </div>
+        <p className="text-on-surface mb-2">
+          Logged in as: <strong>{user?.fullName}</strong> ({role})
+        </p>
+        <p className="text-sm text-outline">Email: {user?.email}</p>
+      </div>
+    </div>
+  );
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <Router>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+
+          {/* Student Routes */}
+          <Route
+            path="/student/dashboard"
+            element={
+              <ProtectedRoute allowedRoles={['Student']}>
+                <StudentDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="/student" element={<Navigate to="/student/dashboard" replace />} />
+
+          {/* Supervisor Protected Route */}
+          <Route
+            path="/supervisor/dashboard"
+            element={
+              <ProtectedRoute allowedRoles={['Supervisor']}>
+                <DashboardPlaceholder title="Supervisor Dashboard" role="Supervisor" />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="/supervisor" element={<Navigate to="/supervisor/dashboard" replace />} />
+
+          {/* Coordinator Protected Route */}
+          <Route
+            path="/coordinator/dashboard"
+            element={
+              <ProtectedRoute allowedRoles={['Coordinator']}>
+                <DashboardPlaceholder title="Coordinator Dashboard" role="Coordinator" />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="/coordinator" element={<Navigate to="/coordinator/dashboard" replace />} />
+
+          {/* Fallback Route */}
+          <Route path="*" element={<Navigate to="/login" replace />} />
+        </Routes>
+      </Router>
+    </AuthProvider>
+  );
+}
