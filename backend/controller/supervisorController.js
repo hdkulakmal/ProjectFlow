@@ -17,7 +17,8 @@ const getAllSupervisors = async (req, res) => {
         const assignedCount = await Group.countDocuments({ supervisor: sup._id });
         return {
           _id: sup._id,
-          name: sup.name,
+          name: sup.fullName,
+          fullName: sup.fullName,
           email: sup.email,
           capacity: profile.capacity,
           assignedGroupsCount: assignedCount,
