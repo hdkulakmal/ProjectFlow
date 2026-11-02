@@ -2,6 +2,9 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Login from './pages/Login';
 import StudentDashboard from './pages/student/StudentDashboard';
+import StudentGroup from './pages/student/StudentGroup';
+import StudentSupervisorRequests from './pages/student/StudentSupervisorRequests';
+import SupervisorDashboard from './pages/supervisor/SupervisorDashboard';
 
 // Protected Route Component
 function ProtectedRoute({ children, allowedRoles }) {
@@ -26,7 +29,7 @@ function ProtectedRoute({ children, allowedRoles }) {
   return children;
 }
 
-// Temporary Placeholder Dashboard Component for Supervisor & Coordinator
+// Temporary Placeholder Dashboard Component for Coordinator
 function DashboardPlaceholder({ title, role }) {
   const { user, logout } = useAuth();
   return (
@@ -66,6 +69,22 @@ export default function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/student/group"
+            element={
+              <ProtectedRoute allowedRoles={['Student']}>
+                <StudentGroup />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/student/supervisor-requests"
+            element={
+              <ProtectedRoute allowedRoles={['Student']}>
+                <StudentSupervisorRequests />
+              </ProtectedRoute>
+            }
+          />
           <Route path="/student" element={<Navigate to="/student/dashboard" replace />} />
 
           {/* Supervisor Protected Route */}
@@ -73,7 +92,7 @@ export default function App() {
             path="/supervisor/dashboard"
             element={
               <ProtectedRoute allowedRoles={['Supervisor']}>
-                <DashboardPlaceholder title="Supervisor Dashboard" role="Supervisor" />
+                <SupervisorDashboard />
               </ProtectedRoute>
             }
           />
