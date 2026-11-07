@@ -6,8 +6,11 @@ import StudentGroup from './pages/student/StudentGroup';
 import StudentSupervisorRequests from './pages/student/StudentSupervisorRequests';
 import StudentTimeline from './pages/student/StudentTimeline';
 import StudentDocuments from './pages/student/StudentDocuments';
+import StudentProjects from './pages/student/StudentProjects';
 import SupervisorDashboard from './pages/supervisor/SupervisorDashboard';
 import CoordinatorDashboard from './pages/coordinator/CoordinatorDashboard';
+import CoordinatorUsers from './pages/coordinator/CoordinatorUsers';
+import CoordinatorSubmissions from './pages/coordinator/CoordinatorSubmissions';
 
 // Protected Route Component
 function ProtectedRoute({ children, allowedRoles }) {
@@ -57,6 +60,14 @@ export default function App() {
             }
           />
           <Route
+            path="/student/projects"
+            element={
+              <ProtectedRoute allowedRoles={['Student']}>
+                <StudentProjects />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/student/supervisor-requests"
             element={
               <ProtectedRoute allowedRoles={['Student']}>
@@ -99,6 +110,22 @@ export default function App() {
             element={
               <ProtectedRoute allowedRoles={['Coordinator']}>
                 <CoordinatorDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/coordinator/users"
+            element={
+              <ProtectedRoute allowedRoles={['Coordinator']}>
+                <CoordinatorUsers />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/coordinator/submissions"
+            element={
+              <ProtectedRoute allowedRoles={['Coordinator']}>
+                <CoordinatorSubmissions />
               </ProtectedRoute>
             }
           />

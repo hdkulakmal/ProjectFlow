@@ -4,9 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import {
   LayoutDashboard,
   Users,
-  FolderGit2,
-  Megaphone,
-  Sliders,
+  FileCheck2,
   LogOut,
   Bell,
   Menu,
@@ -20,8 +18,8 @@ export default function CoordinatorLayout({ children }) {
 
   const navLinks = [
     { name: 'Dashboard', path: '/coordinator/dashboard', icon: LayoutDashboard },
-    { name: 'Groups', path: '/coordinator/dashboard', icon: Users },
-    { name: 'Announcements', path: '/coordinator/dashboard', icon: Megaphone },
+    { name: 'User Management', path: '/coordinator/users', icon: Users },
+    { name: 'Submissions & Grading', path: '/coordinator/submissions', icon: FileCheck2 },
   ];
 
   const handleLogout = () => {
@@ -59,7 +57,7 @@ export default function CoordinatorLayout({ children }) {
                 className={({ isActive }) =>
                   `flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-semibold transition-all ${
                     isActive
-                      ? 'bg-surface-container-low text-primary border-l-4 border-secondary shadow-xs'
+                      ? 'bg-surface-container-low text-primary border-l-4 border-secondary shadow-xs font-bold'
                       : 'text-on-surface-variant hover:text-primary hover:bg-surface-container'
                   }`
                 }
@@ -93,17 +91,17 @@ export default function CoordinatorLayout({ children }) {
         </div>
       </aside>
 
-      {/* Main Content */}
+      {/* Main Content Area */}
       <div className="flex-1 md:ml-[280px] flex flex-col min-h-screen">
         <header className="h-16 sticky top-0 z-10 bg-surface/90 backdrop-blur-md border-b border-outline-variant px-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button
-              onClick={() => setMobileMenuOpen(true)}
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="md:hidden p-2 rounded-lg text-on-surface hover:bg-surface-container"
             >
               <Menu className="h-6 w-6" />
             </button>
-            <h2 className="text-base font-bold text-primary">Academic Project Coordinator</h2>
+            <h2 className="text-base font-bold text-primary">Academic Project Management</h2>
           </div>
 
           <div className="flex items-center gap-3">

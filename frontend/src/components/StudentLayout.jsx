@@ -15,6 +15,8 @@ import {
   X,
   GraduationCap
 } from 'lucide-react';
+import { BookOpen } from 'lucide-react'
+
 
 export default function StudentLayout({ children, projectTitle = "ProjectFlow", groupNumber = "Group" }) {
   const { user, logout } = useAuth();
@@ -35,9 +37,10 @@ export default function StudentLayout({ children, projectTitle = "ProjectFlow", 
     fetchNotifications();
   }, []);
 
-  const navLinks = [
+    const navLinks = [
     { name: 'Dashboard', path: '/student/dashboard', icon: LayoutDashboard },
     { name: 'My Group', path: '/student/group', icon: Users },
+    { name: 'Previous Projects', path: '/student/projects', icon: BookOpen },
     { name: 'Supervisor Requests', path: '/student/supervisor-requests', icon: UserPlus },
     { name: 'Communication', path: '/student/chat', icon: MessageSquare },
     { name: 'Documents', path: '/student/documents', icon: FileText },
